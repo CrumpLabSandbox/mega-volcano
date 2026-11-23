@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Engine preview</title>
+<style>body{margin:0;background:#111;color:#ddd;font:12px system-ui}#g{display:grid;grid-template-columns:repeat(auto-fill,480px);gap:6px;padding:6px}figure{margin:0}figcaption{padding:2px 0}canvas{display:block;width:480px;height:270px;background:repeating-conic-gradient(#2a2a2a 0 25%,#3a3a3a 0 50%) 0 0/16px 16px}</style>
+<div id="g"></div>
+<script type="module">
+// Renders every scene of one engine:
+//   tools/preview.html?engine=section[&t=10][&frames=30][&scene=id][&w=480&h=270][&stage=0.3][&stages=1][&combo=1]
+// stages=1 renders each scene at six life stages instead of its preset stage; combo=1 renders with a transparent sky
+// (shown over a checkerboard) to check the cloud-combo alpha.
+import { loadAll, defaultsFor } from '../js/registry.js';
+import { life } from '../js/life.js';
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') || 480), H = +(q.get('h') || 270), T0 = +(q.get('t') || 12), FR = +(q.get('frames') || 20);
+const COMBO = q.get('combo') === '1';
+window.__errors = [];
+addEventListener('error', e => window.__errors.push(String(e.message)));
+const { scenes } = await loadAll(q.get('engine') ? q.get('engine').split(',') : null);
+const list = scenes.filter(s => !q.get('scene') || s.id === q.get('scene'));
+const runs = [];
+for (const s of list) {
+  if (q.get('stages') === '1') for (const st of [0.06, 0.17, 0.35, 0.56, 0.72, 0.96]) runs.push([s, st]);
+  else runs.push([s, q.has('stage') ? +q.get('stage') : null]);
+}
+for (const [s, st] of runs) {
+  const fig = document.createElement('figure'), c = document.createElement('canvas'), cap = document.createElement('figcaption');
+  c.width = W; c.height = H; cap.textContent = s.id + ' — ' + s.name + (st != null ? ` @${st}` : ''); fig.append(c, cap); g.append(fig);
+  try {
+    // GL scenes render on a throwaway canvas that is copied into the figure and released, so a big grid
+    // never runs past the browser's WebGL context limit
+    const eng = s.engine, glc = eng.kind === 'gl' ? Object.assign(document.createElement('canvas'), { width: W, height: H }) : null;
+    const ctx = glc ? glc.getContext('webgl2', { preserveDrawingBuffer: true, premultipliedAlpha: false }) : c.getContext('2d');
+    const inst = eng.create(ctx, s.opts || {});
+    const p = defaultsFor(eng, s);
+    if (st != null) p.stage = st;
+    const pointer = { x: 0.5, y: 0.5, down: false, moved: false, dragX: 0, dragY: 0, clicks: [] };
+    const t0 = performance.now();
+    for (let i = 0; i < FR; i++) inst.render({ ctx, w: W, h: H, t: T0 + i / 30, dt: 1 / 30, clock: T0 + i / 30, p, stage: p.stage, epoch: 0, life: life(p.stage),
+      combo: COMBO && eng.sky !== false, pointer, opts: s.opts || {} });
+    if (glc) ctx.readPixels(0, 0, 1, 1, ctx.RGBA, ctx.UNSIGNED_BYTE, new Uint8Array(4)); else ctx.getImageData(0, 0, 1, 1);
+    cap.textContent += `  (${((performance.now() - t0) / FR).toFixed(1)} ms/frame)`;
+    if (glc) { c.getContext('2d').drawImage(glc, 0, 0); inst.dispose?.(); ctx.getExtension('WEBGL_lose_context')?.loseContext(); }
+  } catch (err) { cap.textContent += '  ERROR: ' + err.message; cap.style.color = '#f66'; window.__errors.push(s.id + ': ' + err.message); }
+}
+window.__done = runs.length;
+</script>

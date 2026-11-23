@@ -3,28 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>mega-volcano</title>
-<meta name="description" content="A cloud simulator: over a hundred animated cloudscapes, from raymarched cumulus to 8-bit, graffiti and ink.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M18 48a12 12 0 0 1-1-24 16 16 0 0 1 30-4 12 12 0 0 1 1 28z' fill='%23fff' stroke='%233a6ea5' stroke-width='3'/%3E%3C/svg%3E">
+<title>Mega-Volcano</title>
+<meta name="description" content="A volcanic island simulator: watch islands rise from the sea floor, erupt, erode and sink into atolls, in over a hundred styles. Layer any Mega-Clouds sky on top.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M4 50h56v10H4z' fill='%232b6f9e'/%3E%3Cpath d='M8 50l16-26h16l16 26z' fill='%233a2a24'/%3E%3Cpath d='M26 24l6 9 6-9z' fill='%23ff6a1f'/%3E%3Ccircle cx='28' cy='12' r='6' fill='%23999'/%3E%3Ccircle cx='38' cy='9' r='7' fill='%23aaa'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<canvas id="out" aria-label="Cloud animation"></canvas>
+<canvas id="out" aria-label="Volcano animation"></canvas>
 
 <section id="gallery" hidden>
   <header class="g-head">
-    <h1><span class="logo">☁</span> mega-volcano</h1>
-    <p class="sub"><span id="count">…</span> cloud simulations. Pick one, or press <kbd>Shuffle</kbd> for a screensaver.</p>
+    <h1><span class="logo">🌋</span> Mega-Volcano</h1>
+    <p class="sub"><span id="count">…</span> volcanic island simulations, from the first eruption on the sea floor to a drowned atoll. Pick one, or press <kbd>Shuffle</kbd> for a screensaver.</p>
     <div class="g-tools">
-      <input id="search" type="search" placeholder="Search clouds…" aria-label="Search scenes">
+      <input id="search" type="search" placeholder="Search volcanoes…" aria-label="Search scenes">
       <button id="g-shuffle" class="pill accent">▶ Shuffle all</button>
+      <span class="combo-tools">
+        <label class="g-clouds" title="Layer a Mega-Clouds sky over every scene you open">☁
+          <select id="g-clouds" aria-label="Clouds"><option value="">No clouds</option><option value="random">Random clouds</option></select>
+        </label>
+        <button id="g-combo" class="pill accent2" title="Random volcano + random clouds, changing every 30 s">▶ Volcano + clouds screensaver</button>
+      </span>
     </div>
     <nav id="chips" aria-label="Filter by tag"></nav>
   </header>
   <div id="grid"></div>
   <footer class="g-foot">
-    Drag to look around in 3D scenes · click to interact · <kbd>←</kbd><kbd>→</kbd> change scene · <kbd>Space</kbd> pause · <kbd>F</kbd> full screen · <kbd>H</kbd> hide controls.
-    Embed as a clean video source with <code>?scene=&lt;id&gt;&amp;ui=0</code>. <a href="https://github.com/CrumpLabSandbox/mega-volcano">Source</a>
+    Drag to look around in 3D scenes · click to interact · <kbd>←</kbd><kbd>→</kbd> change scene · <kbd>↑</kbd><kbd>↓</kbd> change clouds · <kbd>K</kbd> clouds on/off ·
+    <kbd>Space</kbd> pause · <kbd>I</kbd> stage captions · <kbd>F</kbd> full screen · <kbd>H</kbd> hide controls.
+    Embed as a clean video source with <code>?scene=&lt;id&gt;&amp;ui=0</code>, add a sky with <code>&amp;clouds=&lt;cloud id&gt;</code>.
+    Clouds come from <a id="clouds-site" href="https://crumplabsandbox.github.io/Mega-Clouds/">Mega-Clouds</a>.
+    How islands form: <a href="https://github.com/CrumpLabSandbox/mega-volcano/blob/main/docs/SCIENCE.md">the science</a> · <a href="https://github.com/CrumpLabSandbox/mega-volcano">Source</a>
   </footer>
 </section>
 
@@ -32,7 +41,7 @@
   <div class="bar top">
     <button id="b-gallery" class="pill" title="All scenes (G)">☰ Gallery</button>
     <button id="b-prev" class="icon" title="Previous (←)">‹</button>
-    <div class="title"><strong id="s-name"></strong><span id="s-engine"></span></div>
+    <div class="title"><strong><span id="s-name"></span><span id="s-clouds"></span></strong><span id="s-engine"></span></div>
     <button id="b-next" class="icon" title="Next (→)">›</button>
     <span class="grow"></span>
     <label class="shuffle" title="Screensaver: change scene every…">⟳
@@ -43,6 +52,8 @@
     </label>
     <button id="b-pause" class="icon" title="Pause (Space)">❚❚</button>
     <button id="b-random" class="icon" title="Random scene (R)">⚄</button>
+    <button id="b-clouds" class="icon need-clouds" title="Clouds from Mega-Clouds (K)">☁</button>
+    <button id="b-cap" class="icon" title="Stage captions (I)">ⓘ</button>
     <button id="b-panel" class="icon" title="Controls (C)">⚙</button>
     <span id="hands-slot"></span>
     <button id="b-snap" class="icon" title="Save a PNG (S)">◉</button>
@@ -52,8 +63,27 @@
   </div>
   <aside id="panel" hidden>
     <p id="s-desc"></p>
-    <h3>Clouds</h3><div id="ctl-main"></div>
+    <h3>Island</h3><div id="ctl-main"></div>
     <h3 id="h-extra">This scene</h3><div id="ctl-extra"></div>
+    <section id="cloud-sec" class="need-clouds">
+      <h3>Clouds</h3>
+      <div class="row"><label for="c-clouds">Sky</label><select id="c-clouds"><option value="">No clouds</option><option value="random">Random clouds</option></select></div>
+      <div id="cloud-extra" hidden>
+        <div class="row"><label for="c-cmode" title="How the clouds and the island are layered">Layering</label>
+          <select id="c-cmode">
+            <option value="auto">Auto</option>
+            <option value="sky">Sky: clouds behind</option>
+            <option value="mist">Mist: behind and in front</option>
+            <option value="over">Over: clouds on top</option>
+            <option value="screen">Screen: blend</option>
+          </select></div>
+        <div id="cloud-sliders"></div>
+        <div class="row"><label for="c-clink" title="Clouds follow the island's Light, Wind and Speed">Follow</label><span class="check"><input type="checkbox" id="c-clink" checked> light, wind, speed</span></div>
+        <div class="row"><label for="c-cshuffle">Shuffle</label>
+          <select id="c-cshuffle"><option value="both">changes both</option><option value="volcano">changes the volcano</option><option value="clouds">changes the clouds</option></select></div>
+        <div class="btns"><button id="c-cnext" class="pill">Next clouds</button></div>
+      </div>
+    </section>
     <h3>Look</h3><div id="ctl-look"></div>
     <h3>Output</h3>
     <div class="row"><label for="quality">Quality</label>
@@ -65,6 +95,12 @@
   </aside>
   <div id="toast" role="status" aria-live="polite"></div>
 </section>
+
+<div id="stage" hidden aria-live="polite">
+  <div class="st-bar"><i id="stage-bar"></i></div>
+  <strong id="stage-name"></strong>
+  <span id="stage-text"></span>
+</div>
 
 <div id="err" hidden></div>
 <script src="js/vendor/invisible-hands.js"></script>
