@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mix &amp; Match · Mega-Volcano</title>
 <meta name="description" content="Roll random pairs of volcanic islands and cloudscapes: any Mega-Volcano scene under any Mega-Clouds sky.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M4 50h56v10H4z' fill='%232b6f9e'/%3E%3Cpath d='M8 50l16-26h16l16 26z' fill='%233a2a24'/%3E%3Cpath d='M26 24l6 9 6-9z' fill='%23ff6a1f'/%3E%3Ccircle cx='28' cy='12' r='6' fill='%23999'/%3E%3Ccircle cx='38' cy='9' r='7' fill='%23aaa'/%3E%3C/svg%3E">
@@ -38,7 +38,36 @@
   .icon:disabled { opacity: .35; cursor: default; }
   #wait { position: fixed; inset: 0; display: grid; place-items: center; z-index: 2; color: var(--muted); pointer-events: none; transition: opacity .6s; }
   #wait.gone { opacity: 0; }
-  @media (max-width: 720px) { .plus { display: none; } #b-mix { flex: 1 1 100%; order: -1; } .opts { flex: 1 1 100%; justify-content: space-between; } }
+  #toast { position: fixed; bottom: 96px; z-index: 4; pointer-events: none; }
+  /* phones: the picture fills the screen; a small Mix button and a name chip sit in the corners, the rest is a sheet */
+  #mini { display: none; }
+  @media (max-width: 720px), (max-height: 500px) {
+    #view { height: 100dvh; }
+    #mini { display: flex; position: fixed; z-index: 3; align-items: flex-end; justify-content: space-between; gap: 10px; pointer-events: none;
+      left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); }
+    #mini > * { pointer-events: auto; transition: opacity .5s; }
+    #m-info { min-width: 0; max-width: min(72vw, 340px); text-align: left; line-height: 1.25; font-size: 12px; padding: 5px 10px; cursor: pointer;
+      background: rgb(18 10 8 / .5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; }
+    #m-info span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #m-c { color: var(--accent2); }
+    #m-mix { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; font-size: 21px; cursor: pointer;
+      background: conic-gradient(#fff calc(var(--p, 0) * 1%), transparent 0), linear-gradient(135deg, #ffb35c, #ff7a2f 55%, #e0442a);
+      box-shadow: 0 3px 14px rgb(0 0 0 / .45); display: grid; place-items: center; }
+    #m-mix b { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #ffb35c, #ff7a2f 55%, #e0442a); font-weight: 400; }
+    #m-mix:active { transform: scale(.94); }
+    body.idle #m-info { opacity: 0; pointer-events: none; }
+    body.idle #m-mix { opacity: .4; }
+    #top { left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); }
+    #top .pill { min-height: 30px; padding: 3px 10px; font-size: 13px; }
+    #dock { display: none; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
+      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 56px); max-height: calc(100dvh - 130px); overflow: auto; }
+    body.open #dock { display: flex; }
+    #dock #b-mix, .plus { display: none; }
+    .slot { flex: 1 1 240px; }
+    .opts { flex: 1 1 100%; justify-content: space-between; }
+    .opts select { flex: 1 1 130px; max-width: none; }
+    #toast { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 62px); font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -81,8 +110,13 @@
     <a class="icon" id="b-open" title="Open this pair in Mega-Volcano with all its controls" style="text-decoration:none">⚙</a>
     <button class="icon" id="b-full" title="Full screen (F)">⛶</button>
   </div>
-  <div id="toast" role="status" aria-live="polite" style="bottom:calc(100% + 10px)"></div>
 </section>
+
+<div id="mini">
+  <button id="m-info" aria-expanded="false" aria-controls="dock" title="Options: lock, reroll one side, layering, timer"><span id="m-v">…</span><span id="m-c"></span></button>
+  <button id="m-mix" aria-label="New random pair"><b>🎲</b></button>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
 // Mix & Match: rolls random pairs of a Mega-Volcano scene and a Mega-Clouds scene. The picture is the main app in a
@@ -116,6 +150,7 @@ function label() {
   };
   put('#s-v', '#v-name', '#v-eng', v, '…');
   put('#s-c', '#c-name', '#c-eng', c, C.length ? 'No clouds' : 'Mega-Clouds not available');
+  $('#m-v').textContent = v ? v.name : '…'; $('#m-c').textContent = c ? '+ ' + c.name : '';
   document.title = (v ? v.name + (c ? ' + ' + c.name : '') + ' · ' : '') + 'Mix & Match · Mega-Volcano';
   const u = new URLSearchParams();
   if (cur.v) u.set('v', cur.v); if (cur.c) u.set('c', cur.c); if (cur.m !== 'auto') u.set('m', cur.m);
@@ -160,7 +195,12 @@ function full() { if (document.fullscreenElement) document.exitFullscreen(); els
 
 // the dock fades out when the pointer rests, like the viewer's HUD
 let idleT = 0;
-function wake() { document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (!$('#dock').matches(':hover, :focus-within')) document.body.classList.add('idle'); }, 3500); }
+function wake() {
+  document.body.classList.remove('idle'); clearTimeout(idleT);
+  idleT = setTimeout(() => { if (!document.body.classList.contains('open') && !$('#dock').matches(':hover, :focus-within')) document.body.classList.add('idle'); }, 3500);
+}
+// on a phone the dock is a sheet, opened from the name chip
+function sheet(on) { document.body.classList.toggle('open', on); $('#m-info').setAttribute('aria-expanded', on); wake(); }
 
 function key(e) {
   if (e.target.matches?.('select, input')) return false;
@@ -180,6 +220,8 @@ function key(e) {
 }
 
 $('#b-mix').onclick = () => mix();
+$('#m-mix').onclick = () => { mix(); wake(); };
+$('#m-info').onclick = () => sheet(!document.body.classList.contains('open'));
 $('#v-roll').onclick = () => mix('v');
 $('#c-roll').onclick = () => mix('c');
 $('#v-lock').onclick = () => setLock('v', !lock.v);
@@ -200,6 +242,7 @@ async function boot() {
   // keys pressed while the picture has focus: ours first, the rest (arrows, pause…) go to the app
   fw.addEventListener('keydown', e => { if (key(e)) e.stopImmediatePropagation(); }, true);
   for (const ev of ['pointermove', 'pointerdown']) fw.addEventListener(ev, wake, { passive: true });
+  fw.addEventListener('pointerdown', () => sheet(false), { passive: true });
   V = api.scenes;
   if (await api.loadClouds()) C = api.cloudScenes;
   if (!C.length) { $('#c-lock').disabled = $('#c-roll').disabled = true; $('#o-mode').disabled = true; }
@@ -215,7 +258,8 @@ async function boot() {
   setInterval(() => {
     if (api.scene !== cur.v || api.clouds !== cur.c) { cur.v = api.scene; cur.c = api.clouds; label(); }
     const now = performance.now();
-    $('#bar').style.width = every && dueAt ? Math.max(0, Math.min(100, 100 - (dueAt - now) / (every * 10))) + '%' : '0';
+    const pct = every && dueAt ? Math.max(0, Math.min(100, 100 - (dueAt - now) / (every * 10))) : 0;
+    $('#bar').style.width = pct + '%'; $('#m-mix').style.setProperty('--p', pct.toFixed(1));
     if (every && dueAt && now > dueAt) mix();
   }, 250);
 }
