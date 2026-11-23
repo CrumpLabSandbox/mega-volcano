@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mix &amp; Match · Mega-Volcano</title>
+<meta name="description" content="Roll random pairs of volcanic islands and cloudscapes: any Mega-Volcano scene under any Mega-Clouds sky.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M4 50h56v10H4z' fill='%232b6f9e'/%3E%3Cpath d='M8 50l16-26h16l16 26z' fill='%233a2a24'/%3E%3Cpath d='M26 24l6 9 6-9z' fill='%23ff6a1f'/%3E%3Ccircle cx='28' cy='12' r='6' fill='%23999'/%3E%3Ccircle cx='38' cy='9' r='7' fill='%23aaa'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  #view { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; display: block; background: #120c0a; }
+  #dock { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 3; display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap;
+    background: var(--panel); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border: 1px solid var(--line); border-radius: 18px; padding: 8px; transition: opacity .5s, transform .5s; }
+  body.idle #dock, body.idle #top { opacity: 0; pointer-events: none; }
+  body.idle #dock { transform: translateY(8px); }
+  #top { position: fixed; left: 12px; top: 12px; z-index: 3; display: flex; gap: 6px; transition: opacity .5s; }
+  #top .pill { background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); text-decoration: none; color: var(--text); display: inline-flex; align-items: center; }
+  .slot { flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px 6px 12px; background: rgb(255 255 255 / .04); }
+  .slot.locked { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .slot .txt { flex: 1; min-width: 0; line-height: 1.2; }
+  .slot small { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--c); }
+  .slot strong, .slot span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot span { color: var(--muted); font-size: 12px; }
+  #s-v { --c: var(--accent); } #s-c { --c: var(--accent2); }
+  .slot.roll strong { animation: roll .35s ease; }
+  @keyframes roll { from { transform: translateY(-9px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .plus { align-self: center; color: var(--muted); font-size: 20px; }
+  #b-mix { flex: 0 0 auto; position: relative; overflow: hidden; border: 0; border-radius: 12px; padding: 0 26px; min-height: 52px; font-size: 17px; font-weight: 750; cursor: pointer;
+    color: #1d0c04; background: linear-gradient(135deg, #ffb35c, #ff7a2f 55%, #e0442a); box-shadow: 0 4px 18px rgb(255 110 40 / .35); }
+  #b-mix:hover { filter: brightness(1.08); } #b-mix:active { transform: translateY(1px); }
+  #b-mix i { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: rgb(255 255 255 / .75); }
+  .opts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .opts select { background: rgb(255 255 255 / .07); border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; min-height: 34px; max-width: 150px; }
+  .opts select option { background: #21140f; }
+  .opts label.chk { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .icon[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: #1d0c04; }
+  .icon:disabled { opacity: .35; cursor: default; }
+  #wait { position: fixed; inset: 0; display: grid; place-items: center; z-index: 2; color: var(--muted); pointer-events: none; transition: opacity .6s; }
+  #wait.gone { opacity: 0; }
+  @media (max-width: 720px) { .plus { display: none; } #b-mix { flex: 1 1 100%; order: -1; } .opts { flex: 1 1 100%; justify-content: space-between; } }
+</style>
+</head>
+<body>
+<iframe id="view" title="Mega-Volcano" allow="fullscreen"></iframe>
+<div id="wait">Warming up the volcano…</div>
+
+<nav id="top">
+  <a class="pill" href="./" title="All scenes">☰ Gallery</a>
+</nav>
+
+<section id="dock" aria-label="Mix and match">
+  <div class="slot" id="s-v">
+    <div class="txt"><small>Volcano</small><strong id="v-name">…</strong><span id="v-eng"></span></div>
+    <button class="icon" id="v-lock" aria-pressed="false" title="Keep this volcano (1)">🔒</button>
+    <button class="icon" id="v-roll" title="Another volcano (V)">↻</button>
+  </div>
+  <span class="plus">+</span>
+  <div class="slot" id="s-c">
+    <div class="txt"><small>Clouds</small><strong id="c-name">…</strong><span id="c-eng"></span></div>
+    <button class="icon" id="c-lock" aria-pressed="false" title="Keep these clouds (2)">🔒</button>
+    <button class="icon" id="c-roll" title="Other clouds (C)">↻</button>
+  </div>
+  <button id="b-mix" title="New random pair (Space)">🎲 Mix<i id="bar"></i></button>
+  <div class="opts">
+    <select id="o-mode" title="How the clouds and the island are layered" aria-label="Layering">
+      <option value="auto">Layering: auto</option>
+      <option value="surprise">Layering: surprise me</option>
+      <option value="sky">Clouds behind</option>
+      <option value="mist">Behind + mist in front</option>
+      <option value="over">Clouds on top</option>
+      <option value="screen">Screen blend</option>
+    </select>
+    <select id="o-every" title="Roll a new pair automatically" aria-label="Auto mix">
+      <option value="0">Auto: off</option><option value="10">every 10 s</option><option value="20">every 20 s</option>
+      <option value="30">every 30 s</option><option value="60">every 1 min</option><option value="120">every 2 min</option>
+    </select>
+    <label class="chk" title="Also roll the island's life stage, the time of day and the wind"><input type="checkbox" id="o-wild"> Wild</label>
+    <button class="icon" id="b-back" title="Previous pair (B)" disabled>↶</button>
+    <button class="icon" id="b-link" title="Copy a link to this pair">🔗</button>
+    <a class="icon" id="b-open" title="Open this pair in Mega-Volcano with all its controls" style="text-decoration:none">⚙</a>
+    <button class="icon" id="b-full" title="Full screen (F)">⛶</button>
+  </div>
+  <div id="toast" role="status" aria-live="polite" style="bottom:calc(100% + 10px)"></div>
+</section>
+
+<script type="module">
+// Mix & Match: rolls random pairs of a Mega-Volcano scene and a Mega-Clouds scene. The picture is the main app in a
+// same-origin frame (?ui=0), driven through window.megaVolcano. Lock one side to keep it and reroll the other.
+//   mix.html?v=<volcano id>&c=<cloud id>&m=<sky|mist|over|screen>&every=<seconds>&wild=1&room=<Invisible Hands room>
+const $ = s => document.querySelector(s);
+const q = new URLSearchParams(location.search);
+const frame = $('#view');
+const MODES = ['sky', 'mist', 'over', 'screen'];
+const pick = (list, not) => { const l = list.length > 1 ? list.filter(x => x.id !== not) : list; return l[Math.floor(Math.random() * l.length)]; };
+
+let api = null, V = [], C = [];
+let cur = { v: '', c: '', m: 'auto' };     // the pair on screen
+const lock = { v: false, c: false };
+const past = [];
+let every = 0, dueAt = 0;
+
+const src = new URLSearchParams({ ui: '0' });
+if (q.get('room')) src.set('room', q.get('room'));
+if (q.get('v')) src.set('scene', q.get('v'));
+frame.src = './?' + src;
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+
+function label() {
+  const v = V.find(s => s.id === cur.v), c = C.find(s => s.id === cur.c);
+  const put = (slot, name, eng, s, none) => {
+    const el = $(name), text = s ? s.name : none;
+    if (el.textContent !== text) { el.textContent = text; $(slot).classList.remove('roll'); void $(slot).offsetWidth; $(slot).classList.add('roll'); }
+    $(eng).textContent = s ? s.engineName || s.engine : '';
+  };
+  put('#s-v', '#v-name', '#v-eng', v, '…');
+  put('#s-c', '#c-name', '#c-eng', c, C.length ? 'No clouds' : 'Mega-Clouds not available');
+  document.title = (v ? v.name + (c ? ' + ' + c.name : '') + ' · ' : '') + 'Mix & Match · Mega-Volcano';
+  const u = new URLSearchParams();
+  if (cur.v) u.set('v', cur.v); if (cur.c) u.set('c', cur.c); if (cur.m !== 'auto') u.set('m', cur.m);
+  if (every) u.set('every', every); if ($('#o-wild').checked) u.set('wild', '1'); if (q.get('room')) u.set('room', q.get('room'));
+  history.replaceState(null, '', '?' + u);
+  const o = new URLSearchParams({ scene: cur.v }); if (cur.c) o.set('clouds', cur.c); if (cur.m !== 'auto') o.set('cmode', cur.m);
+  $('#b-open').href = './?' + o;
+  $('#b-back').disabled = !past.length;
+}
+
+// show a pair; remember the one it replaces
+function show(next, remember = true) {
+  if (!api) return;
+  if (remember && cur.v) { past.push({ ...cur }); if (past.length > 50) past.shift(); }
+  if (next.v !== api.scene) api.setScene(next.v);
+  if (next.c !== api.clouds || next.m !== cur.m) api.setClouds(next.c, next.m);
+  cur = { ...next };
+  if (next.wild) for (const [k, v] of Object.entries(next.wild)) api.set(k, v);
+  dueAt = every ? performance.now() + every * 1000 : 0;
+  label();
+}
+function modeFor() {
+  const m = $('#o-mode').value;
+  return m === 'surprise' ? ['auto', 'auto', 'mist', 'over', 'screen'][Math.floor(Math.random() * 5)] : m;
+}
+// what: 'both' respects the locks; 'v' or 'c' rerolls that side whatever its lock says
+function mix(what = 'both') {
+  if (!api) return;
+  const newV = what === 'v' || (what === 'both' && !lock.v), newC = C.length && (what === 'c' || (what === 'both' && !lock.c));
+  if (!newV && !newC) { toast('Both sides are locked'); dueAt = every ? performance.now() + every * 1000 : 0; return; }
+  const next = { v: newV ? pick(V, cur.v).id : cur.v, c: newC ? pick(C, cur.c).id : cur.c, m: newC || !cur.c ? modeFor() : cur.m };
+  if ($('#o-wild').checked && newV) next.wild = { stage: 0.04 + Math.random() * 0.94, light: Math.random() < 0.25 ? Math.random() * 0.2 : 0.25 + Math.random() * 0.75, wind: Math.random() };
+  show(next);
+}
+function back() { const p = past.pop(); if (p) show(p, false); }
+function setLock(side, on) {
+  lock[side] = on;
+  $(`#${side}-lock`).setAttribute('aria-pressed', on);
+  $(`#s-${side}`).classList.toggle('locked', on);
+}
+function full() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
+
+// the dock fades out when the pointer rests, like the viewer's HUD
+let idleT = 0;
+function wake() { document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (!$('#dock').matches(':hover, :focus-within')) document.body.classList.add('idle'); }, 3500); }
+
+function key(e) {
+  if (e.target.matches?.('select, input')) return false;
+  if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  const k = e.key.toLowerCase();
+  if (k === ' ' || k === 'enter' || k === 'm') mix();
+  else if (k === 'v') mix('v');
+  else if (k === 'c') mix('c');
+  else if (k === '1') setLock('v', !lock.v);
+  else if (k === '2') setLock('c', !lock.c);
+  else if (k === 'b' || k === 'backspace') back();
+  else if (k === 'f') full();
+  else if (k === 'h') document.body.classList.toggle('idle');
+  else return false;
+  e.preventDefault(); wake();
+  return true;
+}
+
+$('#b-mix').onclick = () => mix();
+$('#v-roll').onclick = () => mix('v');
+$('#c-roll').onclick = () => mix('c');
+$('#v-lock').onclick = () => setLock('v', !lock.v);
+$('#c-lock').onclick = () => setLock('c', !lock.c);
+$('#b-back').onclick = back;
+$('#b-full').onclick = full;
+$('#b-link').onclick = () => navigator.clipboard?.writeText(location.href).then(() => toast('Link copied'), () => toast(location.href));
+$('#o-mode').onchange = () => { if (cur.c) show({ ...cur, m: modeFor() }, false); };
+$('#o-every').onchange = e => { every = +e.target.value; dueAt = every ? performance.now() + every * 1000 : 0; label(); };
+$('#o-wild').onchange = label;
+addEventListener('keydown', key);
+for (const ev of ['pointermove', 'pointerdown', 'keydown']) addEventListener(ev, wake, { passive: true });
+
+async function boot() {
+  // wait for the app inside the frame
+  await new Promise(done => { const t = setInterval(() => { const a = frame.contentWindow?.megaVolcano; if (a && a.scenes.length && a.scene) { clearInterval(t); api = a; done(); } }, 100); });
+  const fw = frame.contentWindow;
+  // keys pressed while the picture has focus: ours first, the rest (arrows, pause…) go to the app
+  fw.addEventListener('keydown', e => { if (key(e)) e.stopImmediatePropagation(); }, true);
+  for (const ev of ['pointermove', 'pointerdown']) fw.addEventListener(ev, wake, { passive: true });
+  V = api.scenes;
+  if (await api.loadClouds()) C = api.cloudScenes;
+  if (!C.length) { $('#c-lock').disabled = $('#c-roll').disabled = true; $('#o-mode').disabled = true; }
+  every = +q.get('every') || 0; $('#o-every').value = String(every); if ($('#o-every').value !== String(every)) every = 0;
+  $('#o-wild').checked = q.get('wild') === '1';
+  const m = MODES.includes(q.get('m')) ? q.get('m') : 'auto';
+  if (m !== 'auto') $('#o-mode').value = m;
+  const v = V.find(s => s.id === q.get('v')), c = C.find(s => s.id === q.get('c'));
+  show({ v: (v || pick(V)).id, c: c ? c.id : C.length ? pick(C).id : '', m }, false);
+  $('#wait').classList.add('gone');
+  wake();
+  // follow changes made inside the picture (arrow keys there change the scene or the clouds) and run the auto timer
+  setInterval(() => {
+    if (api.scene !== cur.v || api.clouds !== cur.c) { cur.v = api.scene; cur.c = api.clouds; label(); }
+    const now = performance.now();
+    $('#bar').style.width = every && dueAt ? Math.max(0, Math.min(100, 100 - (dueAt - now) / (every * 10))) + '%' : '0';
+    if (every && dueAt && now > dueAt) mix();
+  }, 250);
+}
+boot();
+</script>
+</body>
+</html>

@@ -592,12 +592,12 @@ function setupHands() {
 function exposeAPI() {
   const api = {
     get canvas() { return output.canvas; },
-    get scenes() { return scenes.map(s => ({ id: s.id, name: s.name, engine: s.engine.id, tags: s.tags })); },
+    get scenes() { return scenes.map(s => ({ id: s.id, name: s.name, engine: s.engine.id, engineName: s.engine.name, tags: s.tags })); },
     get scene() { return cur?.scene.id; },
     get params() { return { ...params }; },
     get life() { return currentLife(); },
     get clouds() { return comboOn() ? combo.cur.scene.id : ''; },
-    get cloudScenes() { return (combo.lib?.scenes || []).map(s => ({ id: s.id, name: s.name, engine: s.engine.id })); },
+    get cloudScenes() { return (combo.lib?.scenes || []).map(s => ({ id: s.id, name: s.name, engine: s.engine.id, engineName: s.engine.name })); },
     loadClouds: async () => { combo.lib ||= await loadClouds(); if (combo.lib) fillCloudLists(); return !!combo.lib; },
     setScene(id) { const s = scenes.find(s => s.id === id) || scenes[+id]; if (s) { if (view !== 'viewer') showViewer(s); else setScene(s); } return !!s; },
     set(id, v) {

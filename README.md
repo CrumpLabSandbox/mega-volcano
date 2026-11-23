@@ -81,6 +81,15 @@ viewer or the **Clouds** menu in the gallery, or press **▶ Volcano + clouds sc
 - Cloud cover, cloud size and the in-front strength have their own sliders. Shuffle can change both layers, only the
   volcano, or only the clouds.
 
+### Mix & Match
+
+[`mix.html`](https://crumplabsandbox.github.io/mega-volcano/mix.html) rolls random pairs of a volcano and a sky.
+**🎲 Mix** (or `Space`) rolls both; ↻ rerolls one side (`V`, `C`); 🔒 keeps a side while the other changes (`1`, `2`);
+↶ goes back (`B`). It can roll the layering too, roll on a timer, and with **Wild** also roll the island's life stage,
+the time of day and the wind. The address always names the pair on screen (`?v=<volcano id>&c=<cloud id>`), so 🔗
+copies a link to it, and ⚙ opens the pair in the main viewer with all its controls. `?room=<code>` passes an
+Invisible Hands room through to the picture.
+
 ## As a video source
 
 URL parameters:
@@ -120,6 +129,7 @@ room. While linked, the page holds a WebSocket to Sam's relay, `invisible-hands.
 
 ```
 index.html, css/style.css
+mix.html           Mix & Match: random volcano + cloud pairs, driving the app in a frame
 js/app.js          gallery, viewer, controls, life cycle, cloud combos, shuffle, recording, Invisible Hands, embed API
 js/life.js         the island life model (JS and GLSL), shared by every engine
 js/post.js         output stage: cloud layering, look controls and crossfades on one WebGL2 canvas
