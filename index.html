@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mega-volcano</title>
+<meta name="description" content="A cloud simulator: over a hundred animated cloudscapes, from raymarched cumulus to 8-bit, graffiti and ink.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M18 48a12 12 0 0 1-1-24 16 16 0 0 1 30-4 12 12 0 0 1 1 28z' fill='%23fff' stroke='%233a6ea5' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="out" aria-label="Cloud animation"></canvas>
+
+<section id="gallery" hidden>
+  <header class="g-head">
+    <h1><span class="logo">☁</span> mega-volcano</h1>
+    <p class="sub"><span id="count">…</span> cloud simulations. Pick one, or press <kbd>Shuffle</kbd> for a screensaver.</p>
+    <div class="g-tools">
+      <input id="search" type="search" placeholder="Search clouds…" aria-label="Search scenes">
+      <button id="g-shuffle" class="pill accent">▶ Shuffle all</button>
+    </div>
+    <nav id="chips" aria-label="Filter by tag"></nav>
+  </header>
+  <div id="grid"></div>
+  <footer class="g-foot">
+    Drag to look around in 3D scenes · click to interact · <kbd>←</kbd><kbd>→</kbd> change scene · <kbd>Space</kbd> pause · <kbd>F</kbd> full screen · <kbd>H</kbd> hide controls.
+    Embed as a clean video source with <code>?scene=&lt;id&gt;&amp;ui=0</code>. <a href="https://github.com/CrumpLabSandbox/mega-volcano">Source</a>
+  </footer>
+</section>
+
+<section id="hud" hidden>
+  <div class="bar top">
+    <button id="b-gallery" class="pill" title="All scenes (G)">☰ Gallery</button>
+    <button id="b-prev" class="icon" title="Previous (←)">‹</button>
+    <div class="title"><strong id="s-name"></strong><span id="s-engine"></span></div>
+    <button id="b-next" class="icon" title="Next (→)">›</button>
+    <span class="grow"></span>
+    <label class="shuffle" title="Screensaver: change scene every…">⟳
+      <select id="b-shuffle">
+        <option value="0">Shuffle off</option><option value="15">every 15 s</option><option value="30">every 30 s</option>
+        <option value="60">every 1 min</option><option value="120">every 2 min</option><option value="300">every 5 min</option>
+      </select>
+    </label>
+    <button id="b-pause" class="icon" title="Pause (Space)">❚❚</button>
+    <button id="b-random" class="icon" title="Random scene (R)">⚄</button>
+    <button id="b-panel" class="icon" title="Controls (C)">⚙</button>
+    <span id="hands-slot"></span>
+    <button id="b-snap" class="icon" title="Save a PNG (S)">◉</button>
+    <button id="b-rec" class="icon" title="Record video (V)">⏺</button>
+    <button id="b-link" class="icon" title="Copy a link to this exact view">🔗</button>
+    <button id="b-full" class="icon" title="Full screen (F)">⛶</button>
+  </div>
+  <aside id="panel" hidden>
+    <p id="s-desc"></p>
+    <h3>Clouds</h3><div id="ctl-main"></div>
+    <h3 id="h-extra">This scene</h3><div id="ctl-extra"></div>
+    <h3>Look</h3><div id="ctl-look"></div>
+    <h3>Output</h3>
+    <div class="row"><label for="quality">Quality</label>
+      <select id="quality"><option value="auto">Auto</option><option value="0.5">Low</option><option value="0.75">Medium</option><option value="1">High</option><option value="1.5">Ultra</option></select></div>
+    <div class="row"><label for="fade">Crossfade</label>
+      <select id="fade"><option value="0">Cut</option><option value="1.5" selected>1.5 s</option><option value="4">4 s</option></select></div>
+    <div class="btns"><button id="b-reset" class="pill">Reset scene</button><button id="b-dice" class="pill">Randomise</button></div>
+    <p id="fps" class="muted"></p>
+  </aside>
+  <div id="toast" role="status" aria-live="polite"></div>
+</section>
+
+<div id="err" hidden></div>
+<script src="js/vendor/invisible-hands.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
